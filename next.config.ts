@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Build autonome (.next/standalone) : nécessaire pour le déploiement cPanel/Passenger
+  // (Setup Node.js App), qui lance server.js directement sans "next start" ni node_modules
+  // complet. Voir scripts/copy-standalone-assets.mjs (postbuild) pour public/ et .next/static.
+  output: "standalone",
+
   // Autorise le serveur de dev à répondre aux requêtes venant du tunnel zrok
   // (HMR, RSC...) — sans ça Next bloque les requêtes cross-origin par défaut.
   // Le sous-domaine change à chaque `zrok share`, d'où le wildcard.
