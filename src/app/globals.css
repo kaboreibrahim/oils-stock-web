@@ -1,0 +1,705 @@
+@import "tailwindcss";
+
+/* Palette premium — bleu professionnel en accent, base blanc/gris très clair,
+   couleurs sémantiques (vert/orange/rouge) pour les statuts de stock.
+   Thème sombre : voir les deux blocs plus bas (préférence système via
+   prefers-color-scheme, et bascule explicite via [data-theme] — posée sur
+   <html> par le script anti-flash de app/layout.tsx et par lib/theme.ts). */
+:root {
+  --background: #f4f6fa;
+  --surface: #ffffff;
+  --foreground: #151a26;
+  --muted: #5b6472;
+  --line: #dde3ec;
+
+  --accent: #2a56d6;
+  --accent-2: #34a6e0;
+  --accent-soft: #e8eefc;
+  --accent-strong: #1c3f9e;
+
+  --ok: #2f8a4e;
+  --ok-soft: #e6f4ea;
+  --warn: #c2700a;
+  --warn-soft: #fbeee0;
+  --crit: #c23b30;
+  --crit-soft: #fbe9e7;
+
+  /* Verre — panneaux translucides + flou, sur le fond clair ci-dessus. */
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.7);
+
+  /* Ombre des GlassCard (glass-card.tsx) — teintée pour rester discrète sur
+     fond clair ; réajustée en sombre ci-dessous. */
+  --shadow-1: rgba(21, 26, 38, 0.04);
+  --shadow-2: rgba(21, 26, 38, 0.18);
+}
+
+/* Thème sombre — suit la préférence système tant que l'utilisateur n'a pas
+   fait de choix explicite (pas d'attribut data-theme, voir lib/theme.ts). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0b1220;
+    --surface: #141d30;
+    --foreground: #e8ecf6;
+    --muted: #93a1bd;
+    --line: #263352;
+
+    --accent: #4c7cf5;
+    --accent-2: #4fc3ea;
+    --accent-soft: rgba(76, 124, 245, 0.16);
+    --accent-strong: #a9c3ff;
+
+    --ok: #46d485;
+    --ok-soft: rgba(70, 212, 133, 0.14);
+    --warn: #f2a63f;
+    --warn-soft: rgba(242, 166, 63, 0.14);
+    --crit: #f16a5c;
+    --crit-soft: rgba(241, 106, 92, 0.14);
+
+    --glass: rgba(20, 29, 48, 0.55);
+    --glass-strong: rgba(20, 29, 48, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    --shadow-1: rgba(0, 0, 0, 0.28);
+    --shadow-2: rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Bascule explicite (bouton thème) — a le dernier mot dans les deux sens,
+   qu'elle suive ou contredise la préférence système. */
+:root[data-theme="dark"] {
+  --background: #0b1220;
+  --surface: #141d30;
+  --foreground: #e8ecf6;
+  --muted: #93a1bd;
+  --line: #263352;
+
+  --accent: #4c7cf5;
+  --accent-2: #4fc3ea;
+  --accent-soft: rgba(76, 124, 245, 0.16);
+  --accent-strong: #a9c3ff;
+
+  --ok: #46d485;
+  --ok-soft: rgba(70, 212, 133, 0.14);
+  --warn: #f2a63f;
+  --warn-soft: rgba(242, 166, 63, 0.14);
+  --crit: #f16a5c;
+  --crit-soft: rgba(241, 106, 92, 0.14);
+
+  --glass: rgba(20, 29, 48, 0.55);
+  --glass-strong: rgba(20, 29, 48, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --shadow-1: rgba(0, 0, 0, 0.28);
+  --shadow-2: rgba(0, 0, 0, 0.55);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Filet de sécurité : un overlay hors-écran (tiroir, sheet) en position fixed
+   et transformé via translateX peut rendre la page défilable horizontalement
+   dans Chromium même quand son conteneur a overflow:hidden (la géométrie du
+   fixed contribue quand même au scrollWidth du document). Seul overflow-x
+   sur <html> — le "root scroller" réel — empêche ce défilement fantôme. */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+}
+
+/* Fond décoratif de l'app (hors écran de connexion) : quelques halos très
+   doux en bleu/cyan pour donner au verre quelque chose à laisser transparaître. */
+.oa-app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--background);
+}
+.oa-app-bg::before,
+.oa-app-bg::after {
+  content: "";
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 720px;
+  max-height: 720px;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.35;
+}
+.oa-app-bg::before {
+  top: -18%;
+  right: -12%;
+  background: radial-gradient(circle, var(--accent-2), transparent 70%);
+}
+.oa-app-bg::after {
+  bottom: -22%;
+  left: -14%;
+  background: radial-gradient(circle, var(--accent), transparent 70%);
+  opacity: 0.22;
+}
+
+/* Apparition progressive des cartes (dashboard, listes). Discret, pas de
+   rebond — voir prefers-reduced-motion plus bas pour la neutraliser. */
+.oa-rise {
+  animation: oa-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes oa-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Écran de connexion — panneaux qui s'écartent + animations d'accès  */
+/* ------------------------------------------------------------------ */
+
+/* Couche révélée derrière les deux panneaux (fond de l'app + logo). */
+.oa-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: var(--background);
+}
+.oa-reveal-logo {
+  height: 88px;
+  width: 88px;
+  opacity: 0;
+  animation: oa-reveal-logo 900ms cubic-bezier(0.22, 1, 0.36, 1) 200ms forwards;
+}
+@keyframes oa-reveal-logo {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Les deux moitiés du « rideau ». */
+.oa-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(50% + 1px);
+  z-index: 10;
+  overflow: hidden;
+  transition: transform 850ms cubic-bezier(0.83, 0, 0.17, 1);
+  will-change: transform;
+}
+.oa-panel-left {
+  left: 0;
+  background: linear-gradient(135deg, #0e6f80 0%, var(--accent) 46%, #063a43 100%);
+}
+.oa-panel-right {
+  right: 0;
+  background: linear-gradient(225deg, #0e6f80 0%, var(--accent) 46%, #063a43 100%);
+}
+/* Halo diffus pour la profondeur. */
+.oa-panel-left::before,
+.oa-panel-right::before {
+  content: "";
+  position: absolute;
+  height: 420px;
+  width: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 65%);
+}
+.oa-panel-left::before {
+  top: -110px;
+  left: -140px;
+}
+.oa-panel-right::before {
+  bottom: -130px;
+  right: -150px;
+}
+/* Lumière sur l'arête intérieure (près de la jointure centrale). */
+.oa-panel-left::after,
+.oa-panel-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 45% at 100% 50%, rgba(255, 255, 255, 0.1), transparent 70%);
+}
+.oa-panel-right::after {
+  background: radial-gradient(60% 45% at 0% 50%, rgba(255, 255, 255, 0.1), transparent 70%);
+}
+.oa-panel-open.oa-panel-left {
+  transform: translateX(-100%);
+}
+.oa-panel-open.oa-panel-right {
+  transform: translateX(100%);
+}
+
+/* Rai de lumière qui jaillit à la jointure au moment de l'ouverture. */
+.oa-seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  z-index: 15;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.9),
+    transparent
+  );
+  box-shadow: 0 0 26px 7px rgba(255, 255, 255, 0.55);
+  animation: oa-seam 850ms ease-out forwards;
+}
+@keyframes oa-seam {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.25);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+/* Carte : entrée, sortie, halo « accès validé ». L'entrée est portée par un
+   conteneur distinct pour ne pas être relancée quand .oa-shake apparaît puis
+   disparaît sur la carte elle-même. */
+.oa-card-enter {
+  animation: oa-card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes oa-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.oa-card-ok {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ok) 35%, transparent),
+    0 20px 55px -14px color-mix(in srgb, var(--ok) 50%, transparent);
+  transition:
+    border-color 320ms ease,
+    box-shadow 320ms ease;
+}
+.oa-card-leaving {
+  animation: oa-card-out 420ms ease forwards;
+}
+@keyframes oa-card-out {
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+.oa-shake {
+  animation: oa-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes oa-shake {
+  10%, 90% {
+    transform: translateX(-1px);
+  }
+  20%, 80% {
+    transform: translateX(2px);
+  }
+  30%, 50%, 70% {
+    transform: translateX(-5px);
+  }
+  40%, 60% {
+    transform: translateX(5px);
+  }
+}
+
+/* Logo dans la carte. */
+.oa-logo {
+  animation: oa-logo-in 720ms cubic-bezier(0.34, 1.56, 0.64, 1) 60ms both;
+}
+@keyframes oa-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.09) rotate(3deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Champs + bouton : apparition décalée. */
+.oa-fade-1,
+.oa-fade-2,
+.oa-fade-3 {
+  animation: oa-fade-up 460ms ease-out both;
+}
+.oa-fade-1 {
+  animation-delay: 150ms;
+}
+.oa-fade-2 {
+  animation-delay: 240ms;
+}
+.oa-fade-3 {
+  animation-delay: 330ms;
+}
+@keyframes oa-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.oa-error {
+  animation: oa-fade-up 240ms ease-out both;
+}
+
+/* Spinner du bouton pendant la vérification. */
+.oa-spinner {
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+  border: 2px solid color-mix(in srgb, #fff 45%, transparent);
+  border-top-color: #fff;
+  border-radius: 9999px;
+  animation: oa-spin 700ms linear infinite;
+}
+@keyframes oa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Coche « accès autorisé ». */
+.oa-success-icon {
+  height: 56px;
+  width: 56px;
+  animation: oa-pop 380ms ease-out both;
+}
+@keyframes oa-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.oa-success-ring,
+.oa-success-check {
+  fill: none;
+  stroke: var(--ok);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.oa-success-ring {
+  stroke-width: 2.5;
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: oa-draw 520ms ease-out forwards;
+}
+.oa-success-check {
+  stroke-width: 4;
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  animation: oa-draw 340ms 430ms ease-out forwards;
+}
+@keyframes oa-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.oa-success-text {
+  animation: oa-fade-up 300ms ease-out 250ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oa-rise,
+  .oa-dash-in,
+  .oa-stagger > * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .oa-dash-halo,
+  .oa-dash-wipe,
+  .oa-dash-figure {
+    animation: none !important;
+  }
+  .oa-lift {
+    transition: box-shadow 200ms ease !important;
+  }
+  .oa-lift:hover {
+    transform: none;
+  }
+  .oa-reveal-logo,
+  .oa-card-enter,
+  .oa-card-leaving,
+  .oa-shake,
+  .oa-logo,
+  .oa-fade-1,
+  .oa-fade-2,
+  .oa-fade-3,
+  .oa-error,
+  .oa-seam,
+  .oa-success-icon,
+  .oa-success-ring,
+  .oa-success-check,
+  .oa-success-text {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .oa-panel {
+    transition-duration: 1ms !important;
+  }
+  .oa-card-leaving {
+    opacity: 0;
+  }
+}
+
+/* ================================================================== */
+/*  Utilitaires partagés — soulèvement, révélation en cascade, forms.  */
+/* ================================================================== */
+
+/* Soulèvement discret au survol des cartes cliquables (tuiles, cartes de
+   liste, KPI) — prolonge l'ombre douce de GlassCard. */
+.oa-lift {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+}
+.oa-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 6px var(--shadow-1),
+    0 24px 52px -20px var(--shadow-2);
+}
+
+/* Révélation en cascade : les enfants portent déjà .oa-rise, ce conteneur
+   ajoute un décalage progressif. Neutralisé sous prefers-reduced-motion. */
+.oa-stagger > * {
+  animation: oa-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.oa-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.oa-stagger > *:nth-child(2) { animation-delay: 45ms; }
+.oa-stagger > *:nth-child(3) { animation-delay: 90ms; }
+.oa-stagger > *:nth-child(4) { animation-delay: 135ms; }
+.oa-stagger > *:nth-child(5) { animation-delay: 180ms; }
+.oa-stagger > *:nth-child(6) { animation-delay: 225ms; }
+.oa-stagger > *:nth-child(7) { animation-delay: 270ms; }
+.oa-stagger > *:nth-child(8) { animation-delay: 315ms; }
+.oa-stagger > *:nth-child(n + 9) { animation-delay: 360ms; }
+
+/* Champs de formulaire homogènes : ajouter .oa-form au <form>/à la carte.
+   Anneau de focus net plutôt qu'un simple changement de bordure. */
+.oa-form input:not([type="checkbox"]):not([type="radio"]),
+.oa-form select,
+.oa-form textarea {
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.oa-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.oa-form select:focus,
+.oa-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ================================================================== */
+/*  Tableau de bord — styles réservés à (app)/page.tsx (.oa-dash-*).   */
+/* ================================================================== */
+
+/* Révélation orchestrée : une seule vague depuis le haut de la page,
+   chaque bloc portant son propre délai via --d (posé en ligne).
+   Neutralisée sous prefers-reduced-motion (bloc ci-dessus). */
+.oa-dash-in {
+  animation: oa-dash-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes oa-dash-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Panneau héros : anneau « aurora » lent + grain fin, tous deux
+   détourés par le overflow-hidden de la carte. Le contenu passe
+   au-dessus via z-10 (voir page.tsx). */
+.oa-dash-hero {
+  position: relative;
+  overflow: hidden;
+}
+.oa-dash-halo {
+  position: absolute;
+  top: 50%;
+  right: -150px;
+  height: 500px;
+  width: 500px;
+  border-radius: 9999px;
+  pointer-events: none;
+  /* Base posée explicitement : oa-dash-breathe la fait varier, mais sous
+     prefers-reduced-motion (animation coupée) l'anneau doit rester à cette
+     intensité calme — sans quoi il retomberait à opacity:1. */
+  opacity: 0.42;
+  filter: blur(52px);
+  background: conic-gradient(
+    from 90deg,
+    color-mix(in srgb, var(--accent) 60%, transparent),
+    color-mix(in srgb, var(--accent-2) 66%, transparent),
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    color-mix(in srgb, var(--accent) 60%, transparent)
+  );
+  animation:
+    oa-dash-spin 30s linear infinite,
+    oa-dash-breathe 9s ease-in-out infinite;
+}
+@keyframes oa-dash-spin {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+@keyframes oa-dash-breathe {
+  0%,
+  100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.58;
+  }
+}
+/* Grain — tuile de bruit SVG, en soft-light sous le contenu. */
+.oa-dash-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Barre de composition : essuyage gauche → droite au montage (clip-path).
+   Purement décoratif — les largeurs réelles sont déjà posées en ligne, donc
+   un rendu sans animation reste correct. */
+.oa-dash-wipe {
+  animation: oa-dash-wipe 820ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+}
+@keyframes oa-dash-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Chiffre héros : fondu net (léger flou levé) à l'apparition. */
+.oa-dash-figure {
+  animation: oa-dash-figure 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+@keyframes oa-dash-figure {
+  from {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* ================================================================== */
+/*  Mobile / PWA — cibles tactiles, safe-areas, comportement natif.    */
+/* ================================================================== */
+
+/* Écrans tactiles : hauteur de frappe confortable (≥ 44 px) sur tous les
+   champs et sur les boutons-icônes de la barre d'application (.oa-tap). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    min-height: 2.75rem;
+  }
+  .oa-tap {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
+
+/* Application installée (mode autonome) : se comporter comme une app native. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+  header,
+  nav,
+  .oa-app-bg {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
