@@ -6,6 +6,16 @@ const nextConfig: NextConfig = {
   // complet. Voir scripts/copy-standalone-assets.mjs (postbuild) pour public/ et .next/static.
   output: "standalone",
 
+  // Next.js 16 lance par défaut un process `tsc` séparé pour la vérification
+  // de types pendant le build (au lieu de l'API TypeScript en mémoire comme
+  // avant). Sur l'hébergement cPanel, ce process supplémentaire fait déborder
+  // la limite de processus simultanés du compte (LVE) : "spawn ... EAGAIN".
+  // On revient à l'ancien comportement (pas de process séparé) ; TypeScript 5
+  // (pas 7) est utilisé ici, donc l'API en mémoire reste disponible.
+  experimental: {
+    useTypeScriptCli: false,
+  },
+
   // Autorise le serveur de dev à répondre aux requêtes venant du tunnel zrok
   // (HMR, RSC...) — sans ça Next bloque les requêtes cross-origin par défaut.
   // Le sous-domaine change à chaque `zrok share`, d'où le wildcard.
