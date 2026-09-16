@@ -42,15 +42,18 @@ jobs:
           ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null && echo "Key parses OK" || echo "Key does NOT parse as a valid private key"
 
       - name: Trust server host key
-        run: ssh-keyscan -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+        run: |
+          echo "Resolving ${{ vars.DEPLOY_HOST }} ..."
+          getent hosts "${{ vars.DEPLOY_HOST }}" || echo "(DNS lookup via getent failed or unavailable, continuing)"
+          ssh-keyscan -p ${{ vars.DEPLOY_PORT }} ${{ vars.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload standalone build
         run: |
-          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }}" \
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }}" \
             .next/standalone/ \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/.next/standalone/"
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}:${{ vars.DEPLOY_PATH }}/.next/standalone/"
 
       - name: Restart app (Passenger)
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }} "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "mkdir -p '${{ secrets.DEPLOY_PATH }}/tmp' && touch '${{ secrets.DEPLOY_PATH }}/tmp/restart.txt'"
+          ssh -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }} "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "mkdir -p '${{ vars.DEPLOY_PATH }}/tmp' && touch '${{ vars.DEPLOY_PATH }}/tmp/restart.txt'"
