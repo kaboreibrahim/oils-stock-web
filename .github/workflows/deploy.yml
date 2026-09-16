@@ -32,20 +32,25 @@ jobs:
         run: npm run build
 
       - name: Set up SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "Key file size: $(wc -c < ~/.ssh/deploy_key) bytes"
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null && echo "Key parses OK" || echo "Key does NOT parse as a valid private key"
 
       - name: Trust server host key
         run: ssh-keyscan -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload standalone build
         run: |
-          rsync -az --delete -e "ssh -p ${{ secrets.DEPLOY_PORT }}" \
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }}" \
             .next/standalone/ \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/.next/standalone/"
 
       - name: Restart app (Passenger)
         run: |
-          ssh -p ${{ secrets.DEPLOY_PORT }} "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }} "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "mkdir -p '${{ secrets.DEPLOY_PATH }}/tmp' && touch '${{ secrets.DEPLOY_PATH }}/tmp/restart.txt'"
