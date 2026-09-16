@@ -5,6 +5,13 @@ name: Deploy to cPanel
 # basse pour le compilateur natif SWC de Next.js — voir historique de
 # next.config.ts. Seul le résultat déjà compilé (.next/standalone) est envoyé
 # au serveur, qui n'a donc plus jamais besoin de lancer `next build` lui-même.
+#
+# Déploiement en FTP, pas SSH : le port SSH externe est fermé/filtré sur cet
+# hébergement mutualisé (confirmé injoignable depuis deux réseaux différents),
+# le terminal cPanel utilisé jusque-là passe par un canal interne. Le
+# fichier .next/standalone/tmp/restart.txt (voir scripts/copy-standalone-assets.mjs)
+# est régénéré à chaque build et uploadé avec le reste : Passenger redémarre
+# l'app dès que son horodatage change, sans avoir besoin d'un `touch` distant.
 
 on:
   push:
@@ -31,29 +38,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Set up SSH key
-        env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo "Key file size: $(wc -c < ~/.ssh/deploy_key) bytes"
-          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null && echo "Key parses OK" || echo "Key does NOT parse as a valid private key"
-
-      - name: Trust server host key
-        run: |
-          echo "Resolving ${{ vars.DEPLOY_HOST }} ..."
-          getent ahosts "${{ vars.DEPLOY_HOST }}" || echo "(DNS lookup via getent failed or unavailable, continuing)"
-          ssh-keyscan -4 -p ${{ vars.DEPLOY_PORT }} ${{ vars.DEPLOY_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Upload standalone build
-        run: |
-          rsync -az --delete -e "ssh -4 -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }}" \
-            .next/standalone/ \
-            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}:${{ vars.DEPLOY_PATH }}/.next/standalone/"
-
-      - name: Restart app (Passenger)
-        run: |
-          ssh -4 -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }} "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
-            "mkdir -p '${{ vars.DEPLOY_PATH }}/tmp' && touch '${{ vars.DEPLOY_PATH }}/tmp/restart.txt'"
+      - name: Upload standalone build via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ vars.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: .next/standalone/
+          server-dir: ./.next/standalone/
