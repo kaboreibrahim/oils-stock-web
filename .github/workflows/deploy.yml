@@ -44,16 +44,16 @@ jobs:
       - name: Trust server host key
         run: |
           echo "Resolving ${{ vars.DEPLOY_HOST }} ..."
-          getent hosts "${{ vars.DEPLOY_HOST }}" || echo "(DNS lookup via getent failed or unavailable, continuing)"
-          ssh-keyscan -p ${{ vars.DEPLOY_PORT }} ${{ vars.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          getent ahosts "${{ vars.DEPLOY_HOST }}" || echo "(DNS lookup via getent failed or unavailable, continuing)"
+          ssh-keyscan -4 -p ${{ vars.DEPLOY_PORT }} ${{ vars.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload standalone build
         run: |
-          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }}" \
+          rsync -az --delete -e "ssh -4 -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }}" \
             .next/standalone/ \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}:${{ vars.DEPLOY_PATH }}/.next/standalone/"
 
       - name: Restart app (Passenger)
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }} "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+          ssh -4 -i ~/.ssh/deploy_key -p ${{ vars.DEPLOY_PORT }} "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
             "mkdir -p '${{ vars.DEPLOY_PATH }}/tmp' && touch '${{ vars.DEPLOY_PATH }}/tmp/restart.txt'"
