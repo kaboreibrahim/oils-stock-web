@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 
+// Le binaire natif SWC (utilisé par Next.js pour transpiler/minifier, même en
+// mode webpack) dimensionne son pool de threads Rust (Rayon) sur le nombre de
+// CPU détectés par os.cpus() — 30 sur l'hébergement cPanel. Le compte a une
+// vraie limite de threads/process au niveau système (CloudLinux LVE, via
+// cgroups), invisible dans `ulimit -u` mais bien réelle : avec `experimental.cpus`
+// ci-dessous qui multiplie ça par plusieurs workers, ça déborde et Rayon plante
+// avec EAGAIN. On la plafonne avant que Next.js ne lance ses workers (qui héritent
+// de process.env). Inoffensif en dev local (machine non contrainte).
+if (!process.env.RAYON_NUM_THREADS) {
+  process.env.RAYON_NUM_THREADS = "4";
+}
+
 const nextConfig: NextConfig = {
   // Build autonome (.next/standalone) : nécessaire pour le déploiement cPanel/Passenger
   // (Setup Node.js App), qui lance server.js directement sans "next start" ni node_modules
@@ -12,8 +24,11 @@ const nextConfig: NextConfig = {
   // la limite de processus simultanés du compte (LVE) : "spawn ... EAGAIN".
   // On revient à l'ancien comportement (pas de process séparé) ; TypeScript 5
   // (pas 7) est utilisé ici, donc l'API en mémoire reste disponible.
+  // cpus: par défaut Next.js lance (nombre de CPU - 1) workers de build en
+  // parallèle — 29 sur ce serveur. Même limite de process que ci-dessus.
   experimental: {
     useTypeScriptCli: false,
+    cpus: 2,
   },
 
   // Autorise le serveur de dev à répondre aux requêtes venant du tunnel zrok
